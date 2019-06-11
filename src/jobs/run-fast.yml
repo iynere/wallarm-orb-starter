@@ -1,0 +1,128 @@
+description: >
+  Generate a docker-compose.yaml file for running tests against FAST,
+  optionally install Docker and docker-compose if they are not available
+  in a given execution environment, then build Docker assets and run
+  custom test specs
+
+parameters:
+  executor:
+    type: executor
+    default: default
+    description: >
+      Executor within which to run this job, defaults to this orb's
+      default executor
+
+  install-docker-tools:
+    type: boolean
+    default: false
+    description: >
+      Install Docker and docker-compose at runtime, if they are not
+      preinstalled; not required if using the default executor
+
+  docker-version:
+    type: string
+    default: latest
+    description: >
+      If installing Docker tools, version of Docker to install. Defaults
+      to the latest stable release. If specifying a version other than
+      latest, provide a full release tag, as listed at
+      https://api.github.com/repos/docker/cli/tags, e.g., `v18.09.4`.
+
+  docker-install-dir:
+    type: string
+    default: /usr/local/bin
+    description: >
+      If installing Docker tools, directory in which to install Docker
+      binaries
+
+  docker-compose-version:
+    type: string
+    default: latest
+    description: >
+      If installing Docker tools, version of `docker-compose` to install.
+      Defaults to the latest stable release. If specifying a version other
+      than latest, provide a full release tag, as listed at
+      https://github.com/docker/compose/releases or
+      https://api.github.com/repos/docker/compose/releases, e.g., `1.23.1`.
+
+  docker-compose-install-dir:
+    type: string
+    default: /usr/local/bin
+    description: >
+      If installing Docker tools, directory in which to install
+      `docker-compose`
+
+  setup-remote-docker:
+    type: boolean
+    default: false
+    description: >
+      Setup and use CircleCI's remote Docker environment for Docker and
+      docker-compose commands? Not required if using the default executor
+
+  wallarm-api-token:
+    type: env_var_name
+    default: WALLARM_API_TOKEN
+    description: >
+      Name of environment variable storing a Wallarm API token. Create
+      a token here: https://my.wallarm.com/nodes
+
+  app-name:
+    type: string
+    description: >
+      Name of Dockerized application being tested
+
+  build-context:
+    type: string
+    default: ./.
+    description: >
+      Path to Docker build context for Dockerized application
+
+  dockerfile:
+    type: string
+    default: Dockerfile
+    description: >
+      Name of Dockerfile from which to build Dockerized application
+
+  docker-compose-yaml-filepath:
+    type: string
+    default: docker-compose.yaml
+    description: >
+      Full path, including filename, at which to output the
+      docker-compose.yaml file, defaults to `docker-compose.yaml` in
+      the working directory
+
+  test-commands:
+    type: string
+    description: >
+      Custom commands to run test specs
+
+executor: <<parameters.executor>>
+
+steps:
+  - checkout
+
+  - when:
+      condition: <<parameters.install-docker-tools>>
+      steps:
+        - docker/install-docker-tools:
+            install-dockerize: false
+            docker-version: <<parameters.docker-version>>
+            docker-install-dir: <<parameters.docker-install-dir>>
+            docker-compose-version: <<parameters.docker-compose-version>>
+            docker-compose-install-dir: <<parameters.docker-compose-install-dir>>
+
+  - when:
+      condition: <<parameters.setup-remote-docker>>
+      steps:
+        - setup_remote_docker
+
+  - setup:
+      wallarm-api-token: <<parameters.wallarm-api-token>>
+      app-name: <<parameters.app-name>>
+      build-context: <<parameters.build-context>>
+      dockerfile: <<parameters.dockerfile>>
+      docker-compose-yaml-filepath: <<parameters.docker-compose-yaml-filepath>>
+
+  - run-specs:
+      app-name: <<parameters.app-name>>
+      test-commands: <<parameters.test-commands>>

@@ -1,0 +1,24 @@
+description: >
+  Run custom test specs against Wallarm's FAST tool
+
+parameters:
+  app-name:
+    type: string
+    description: >
+      Name of Dockerized application being tested
+
+  test-commands:
+    type: string
+    description: >
+      Custom commands to run test specs
+
+steps:
+  - run:
+      name: Run specs
+      command: |
+        docker-compose up -d \
+          fast selenium && \
+          docker-compose run \
+          --name <<parameters.app-name>> \
+          --service-ports <<parameters.app-name>> \
+          <<parameters.test-commands>>

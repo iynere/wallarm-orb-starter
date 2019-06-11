@@ -1,0 +1,9 @@
+description: >
+  Use Wallarm's Framework for Automated Security Testing (FAST) to
+  test a Dockerized web application for vulnerabilities. Requires a
+  Wallarm Node token stored as a project environment variable, under
+  the name `TOKEN`.
+
+orbs:
+  docker: circleci/docker@0.5.0
+

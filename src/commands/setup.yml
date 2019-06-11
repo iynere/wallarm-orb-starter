@@ -1,0 +1,93 @@
+description: >
+  Generate a docker-compose.yaml file, then build the requisite
+  Docker image assets
+
+parameters:
+  wallarm-api-token:
+    type: env_var_name
+    default: WALLARM_API_TOKEN
+    description: >
+      Name of environment variable storing a Wallarm API token. Create
+      a token here: https://my.wallarm.com/nodes
+
+  app-name:
+    type: string
+    description: >
+      Name of Dockerized application being tested
+
+  build-context:
+    type: string
+    default: ./.
+    description: >
+      Path to Docker build context for Dockerized application
+
+  dockerfile:
+    type: string
+    default: Dockerfile
+    description: >
+      Name of Dockerfile from which to build Dockerized application
+
+  docker-compose-yaml-filepath:
+    type: string
+    default: docker-compose.yaml
+    description: >
+      Full path, including filename, at which to output the
+      docker-compose.yaml file, defaults to `docker-compose.yaml` in
+      the working directory
+
+steps:
+  - run:
+      name: Create docker-compose.yaml file
+      command: |
+        cat > <<parameters.docker-compose-yaml-filepath>> \<< EOM
+        ---
+        version: '3'
+        services:
+          <<parameters.app-name>>:
+            image: <<parameters.app-name>>
+            build:
+              context: <<parameters.build-context>>
+              dockerfile: <<parameters.dockerfile>>
+            links:
+              - fast
+            environment:
+              CAPYBARA_SERVER_HOST: <<parameters.app-name>>
+              WALLARM_API_TOKEN: ${<<parameters.wallarm-api-token>>}
+              WALLARM_API_HOST: api.wallarm.com
+            ports:
+              - '3000:3000'
+            networks:
+              main:
+                aliases:
+                  - <<parameters.app-name>>
+          fast:
+            image: wallarm/fast
+            environment:
+              WALLARM_API_TOKEN: ${<<parameters.wallarm-api-token>>}
+              WALLARM_API_HOST: api.wallarm.com
+            ports:
+              - '8080:8080'
+            networks:
+              main:
+                aliases:
+                  - fast
+
+          selenium:
+            image: selenium/standalone-firefox:latest
+            ports: ['4444:4444']
+            logging:
+              driver: none
+            environment:
+              http_proxy: http://fast:8080
+            networks:
+              main:
+                aliases:
+                  - selenium
+
+        networks:
+          main:
+        EOM
+
+  - run:
+      name: docker-compose build
+      command: docker-compose build

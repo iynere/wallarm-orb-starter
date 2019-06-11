@@ -1,0 +1,18 @@
+description: >
+  Example using Wallarm's FAST to run tests against a Rails app using
+  Rspec, Capybara, and Selenium. Taken from
+  https://github.com/wallarm/fast-examples-rails.
+
+usage:
+  version: 2.1
+
+  orbs:
+    fast: wallarm/fast@x.y.z
+
+  workflows:
+    test-workflow:
+      jobs:
+        - fast/run-fast:
+            app-name: app-test
+            test-commands: |
+              bundle exec rspec spec/features/posts_spec.rb
